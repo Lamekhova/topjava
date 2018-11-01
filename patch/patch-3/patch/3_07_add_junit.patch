@@ -1,0 +1,191 @@
+Index: src/test/java/ru/javawebinar/topjava/UserTestData.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/test/java/ru/javawebinar/topjava/UserTestData.java	(date 1539808148781)
++++ src/test/java/ru/javawebinar/topjava/UserTestData.java	(date 1539808148781)
+@@ -0,0 +1,12 @@
++package ru.javawebinar.topjava;
++
++import ru.javawebinar.topjava.model.Role;
++import ru.javawebinar.topjava.model.User;
++
++public class UserTestData {
++    public static final int USER_ID = 1;
++    public static final int ADMIN_ID = 2;
++
++    public static final User USER = new User(USER_ID, "User", "user@yandex.ru", "password", Role.ROLE_USER);
++    public static final User ADMIN = new User(ADMIN_ID, "Admin", "admin@gmail.com", "admin", Role.ROLE_ADMIN);
++}
+Index: src/test/java/ru/javawebinar/topjava/web/InMemoryAdminRestControllerTest.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/test/java/ru/javawebinar/topjava/web/InMemoryAdminRestControllerTest.java	(date 1539808255539)
++++ src/test/java/ru/javawebinar/topjava/web/InMemoryAdminRestControllerTest.java	(date 1539808255539)
+@@ -0,0 +1,52 @@
++package ru.javawebinar.topjava.web;
++
++import org.junit.*;
++import org.springframework.context.ConfigurableApplicationContext;
++import org.springframework.context.support.ClassPathXmlApplicationContext;
++import ru.javawebinar.topjava.UserTestData;
++import ru.javawebinar.topjava.model.User;
++import ru.javawebinar.topjava.repository.inmemory.InMemoryUserRepositoryImpl;
++import ru.javawebinar.topjava.util.exception.NotFoundException;
++import ru.javawebinar.topjava.web.user.AdminRestController;
++
++import java.util.Arrays;
++import java.util.Collection;
++
++import static ru.javawebinar.topjava.UserTestData.ADMIN;
++
++public class InMemoryAdminRestControllerTest {
++    private static ConfigurableApplicationContext appCtx;
++    private static AdminRestController controller;
++
++    @BeforeClass
++    public static void beforeClass() {
++        appCtx = new ClassPathXmlApplicationContext("spring/spring-app.xml");
++        System.out.println("\n" + Arrays.toString(appCtx.getBeanDefinitionNames()) + "\n");
++        controller = appCtx.getBean(AdminRestController.class);
++    }
++
++    @AfterClass
++    public static void afterClass() {
++        appCtx.close();
++    }
++
++    @Before
++    public void setUp() throws Exception {
++        // re-initialize
++        InMemoryUserRepositoryImpl repository = appCtx.getBean(InMemoryUserRepositoryImpl.class);
++        repository.init();
++    }
++
++    @Test
++    public void delete() throws Exception {
++        controller.delete(UserTestData.USER_ID);
++        Collection<User> users = controller.getAll();
++        Assert.assertEquals(users.size(), 1);
++        Assert.assertEquals(users.iterator().next(), ADMIN);
++    }
++
++    @Test(expected = NotFoundException.class)
++    public void deleteNotFound() throws Exception {
++        controller.delete(10);
++    }
++}
+\ No newline at end of file
+Index: pom.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- pom.xml	(date 1539808129000)
++++ pom.xml	(date 1539808232708)
+@@ -21,6 +21,9 @@
+         <!-- Logging -->
+         <logback.version>1.2.3</logback.version>
+         <slf4j.version>1.7.25</slf4j.version>
++
++        <!--    Tests  -->
++        <junit.version>4.12</junit.version>
+     </properties>
+ 
+     <build>
+@@ -36,6 +39,14 @@
+                     <target>${java.version}</target>
+                 </configuration>
+             </plugin>
++            <plugin>
++                <groupId>org.apache.maven.plugins</groupId>
++                <artifactId>maven-surefire-plugin</artifactId>
++                <version>2.22.0</version>
++                <configuration>
++                    <argLine>-Dfile.encoding=UTF-8</argLine>
++                </configuration>
++            </plugin>
+         </plugins>
+     </build>
+ 
+@@ -75,6 +86,14 @@
+             <artifactId>jstl</artifactId>
+             <version>1.2</version>
+         </dependency>
++
++        <!--Test-->
++        <dependency>
++            <groupId>junit</groupId>
++            <artifactId>junit</artifactId>
++            <version>${junit.version}</version>
++            <scope>test</scope>
++        </dependency>
+     </dependencies>
+ 
+     <profiles>
+Index: src/main/java/ru/javawebinar/topjava/repository/mock/InMemoryMealRepositoryImpl.java
+===================================================================
+--- src/main/java/ru/javawebinar/topjava/repository/mock/InMemoryMealRepositoryImpl.java	(date 1539808129000)
++++ src/test/java/ru/javawebinar/topjava/repository/inmemory/InMemoryMealRepositoryImpl.java	(date 1539808148617)
+@@ -1,4 +1,4 @@
+-package ru.javawebinar.topjava.repository.mock;
++package ru.javawebinar.topjava.repository.inmemory;
+ 
+ import org.slf4j.Logger;
+ import org.slf4j.LoggerFactory;
+@@ -22,8 +22,8 @@
+ import java.util.function.Predicate;
+ import java.util.stream.Collectors;
+ 
+-import static ru.javawebinar.topjava.repository.mock.InMemoryUserRepositoryImpl.ADMIN_ID;
+-import static ru.javawebinar.topjava.repository.mock.InMemoryUserRepositoryImpl.USER_ID;
++import static ru.javawebinar.topjava.UserTestData.ADMIN_ID;
++import static ru.javawebinar.topjava.UserTestData.USER_ID;
+ 
+ @Repository
+ public class InMemoryMealRepositoryImpl implements MealRepository {
+Index: src/main/java/ru/javawebinar/topjava/repository/mock/InMemoryUserRepositoryImpl.java
+===================================================================
+--- src/main/java/ru/javawebinar/topjava/repository/mock/InMemoryUserRepositoryImpl.java	(date 1539808129000)
++++ src/test/java/ru/javawebinar/topjava/repository/inmemory/InMemoryUserRepositoryImpl.java	(date 1539808148686)
+@@ -1,6 +1,7 @@
+-package ru.javawebinar.topjava.repository.mock;
++package ru.javawebinar.topjava.repository.inmemory;
+ 
+ import org.springframework.stereotype.Repository;
++import ru.javawebinar.topjava.UserTestData;
+ import ru.javawebinar.topjava.model.User;
+ import ru.javawebinar.topjava.repository.UserRepository;
+ 
+@@ -11,14 +12,20 @@
+ import java.util.concurrent.atomic.AtomicInteger;
+ import java.util.stream.Collectors;
+ 
++import static ru.javawebinar.topjava.UserTestData.ADMIN;
++import static ru.javawebinar.topjava.UserTestData.USER;
++
+ @Repository
+ public class InMemoryUserRepositoryImpl implements UserRepository {
+ 
+-    public static final int USER_ID = 1;
+-    public static final int ADMIN_ID = 2;
+-
+     private Map<Integer, User> repository = new ConcurrentHashMap<>();
+-    private AtomicInteger counter = new AtomicInteger(0);
++    private AtomicInteger counter = new AtomicInteger(100);
++
++    public void init() {
++        repository.clear();
++        repository.put(UserTestData.USER_ID, USER);
++        repository.put(UserTestData.ADMIN_ID, ADMIN);
++    }
+ 
+     @Override
+     public User save(User user) {
+Index: src/main/java/ru/javawebinar/topjava/SpringMain.java
+===================================================================
+--- src/main/java/ru/javawebinar/topjava/SpringMain.java	(date 1539808129000)
++++ src/test/java/ru/javawebinar/topjava/SpringMain.java	(date 1539808010091)

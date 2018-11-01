@@ -1,0 +1,151 @@
+Index: src/main/java/ru/javawebinar/topjava/web/MealServlet.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/ru/javawebinar/topjava/web/MealServlet.java	(date 1539783768000)
++++ src/main/java/ru/javawebinar/topjava/web/MealServlet.java	(date 1539783774131)
+@@ -66,7 +66,7 @@
+             default:
+                 log.info("getAll");
+                 request.setAttribute("meals",
+-                        MealsUtil.getWithExceeded(repository.getAll(), MealsUtil.DEFAULT_CALORIES_PER_DAY));
++                        MealsUtil.getWithExcess(repository.getAll(), MealsUtil.DEFAULT_CALORIES_PER_DAY));
+                 request.getRequestDispatcher("/meals.jsp").forward(request, response);
+                 break;
+         }
+Index: src/main/java/ru/javawebinar/topjava/model/MealWithExceed.java
+===================================================================
+--- src/main/java/ru/javawebinar/topjava/model/MealWithExceed.java	(date 1539783768000)
++++ src/main/java/ru/javawebinar/topjava/model/MealTo.java	(date 1539783774115)
+@@ -2,7 +2,7 @@
+ 
+ import java.time.LocalDateTime;
+ 
+-public class MealWithExceed {
++public class MealTo {
+     private final Integer id;
+ 
+     private final LocalDateTime dateTime;
+@@ -11,14 +11,14 @@
+ 
+     private final int calories;
+ 
+-    private final boolean exceed;
++    private final boolean excess;
+ 
+-    public MealWithExceed(Integer id, LocalDateTime dateTime, String description, int calories, boolean exceed) {
++    public MealTo(Integer id, LocalDateTime dateTime, String description, int calories, boolean excess) {
+         this.id = id;
+         this.dateTime = dateTime;
+         this.description = description;
+         this.calories = calories;
+-        this.exceed = exceed;
++        this.excess = excess;
+     }
+ 
+     public Integer getId() {
+@@ -37,18 +37,18 @@
+         return calories;
+     }
+ 
+-    public boolean isExceed() {
+-        return exceed;
++    public boolean isExcess() {
++        return excess;
+     }
+ 
+     @Override
+     public String toString() {
+-        return "MealWithExceed{" +
++        return "MealTo{" +
+                 "id=" + id +
+                 ", dateTime=" + dateTime +
+                 ", description='" + description + '\'' +
+                 ", calories=" + calories +
+-                ", exceed=" + exceed +
++                ", excess=" + excess +
+                 '}';
+     }
+ }
+\ No newline at end of file
+Index: src/main/webapp/meals.jsp
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/webapp/meals.jsp	(date 1539783768000)
++++ src/main/webapp/meals.jsp	(date 1539783774151)
+@@ -11,7 +11,7 @@
+             color: green;
+         }
+ 
+-        .exceeded {
++        .excess {
+             color: red;
+         }
+     </style>
+@@ -33,8 +33,8 @@
+         </tr>
+         </thead>
+         <c:forEach items="${meals}" var="meal">
+-            <jsp:useBean id="meal" scope="page" type="ru.javawebinar.topjava.model.MealWithExceed"/>
+-            <tr class="${meal.exceed ? 'exceeded' : 'normal'}">
++            <jsp:useBean id="meal" scope="page" type="ru.javawebinar.topjava.model.MealTo"/>
++            <tr class="${meal.excess ? 'excess' : 'normal'}">
+                 <td>
+                         <%--${meal.dateTime.toLocalDate()} ${meal.dateTime.toLocalTime()}--%>
+                         <%--<%=TimeUtil.toString(meal.getDateTime())%>--%>
+Index: src/main/java/ru/javawebinar/topjava/util/MealsUtil.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/ru/javawebinar/topjava/util/MealsUtil.java	(date 1539783768000)
++++ src/main/java/ru/javawebinar/topjava/util/MealsUtil.java	(date 1539783774125)
+@@ -1,7 +1,7 @@
+ package ru.javawebinar.topjava.util;
+ 
+ import ru.javawebinar.topjava.model.Meal;
+-import ru.javawebinar.topjava.model.MealWithExceed;
++import ru.javawebinar.topjava.model.MealTo;
+ 
+ import java.time.LocalDate;
+ import java.time.LocalDateTime;
+@@ -25,15 +25,15 @@
+ 
+     public static final int DEFAULT_CALORIES_PER_DAY = 2000;
+ 
+-    public static List<MealWithExceed> getWithExceeded(Collection<Meal> meals, int caloriesPerDay) {
+-        return getFilteredWithExceeded(meals, caloriesPerDay, meal -> true);
++    public static List<MealTo> getWithExcess(Collection<Meal> meals, int caloriesPerDay) {
++        return getFilteredWithExcess(meals, caloriesPerDay, meal -> true);
+     }
+ 
+-    public static List<MealWithExceed> getFilteredWithExceeded(Collection<Meal> meals, int caloriesPerDay, LocalTime startTime, LocalTime endTime) {
+-        return getFilteredWithExceeded(meals, caloriesPerDay, meal -> DateTimeUtil.isBetween(meal.getTime(), startTime, endTime));
++    public static List<MealTo> getFilteredWithExcess(Collection<Meal> meals, int caloriesPerDay, LocalTime startTime, LocalTime endTime) {
++        return getFilteredWithExcess(meals, caloriesPerDay, meal -> DateTimeUtil.isBetween(meal.getTime(), startTime, endTime));
+     }
+ 
+-    private static List<MealWithExceed> getFilteredWithExceeded(Collection<Meal> meals, int caloriesPerDay, Predicate<Meal> filter) {
++    private static List<MealTo> getFilteredWithExcess(Collection<Meal> meals, int caloriesPerDay, Predicate<Meal> filter) {
+         Map<LocalDate, Integer> caloriesSumByDate = meals.stream()
+                 .collect(
+                         Collectors.groupingBy(Meal::getDate, Collectors.summingInt(Meal::getCalories))
+@@ -42,11 +42,11 @@
+ 
+         return meals.stream()
+                 .filter(filter)
+-                .map(meal -> createWithExceed(meal, caloriesSumByDate.get(meal.getDate()) > caloriesPerDay))
++                .map(meal -> createWithExcess(meal, caloriesSumByDate.get(meal.getDate()) > caloriesPerDay))
+                 .collect(toList());
+     }
+ 
+-    public static MealWithExceed createWithExceed(Meal meal, boolean exceeded) {
+-        return new MealWithExceed(meal.getId(), meal.getDateTime(), meal.getDescription(), meal.getCalories(), exceeded);
++    public static MealTo createWithExcess(Meal meal, boolean Excess) {
++        return new MealTo(meal.getId(), meal.getDateTime(), meal.getDescription(), meal.getCalories(), Excess);
+     }
+ }
+\ No newline at end of file

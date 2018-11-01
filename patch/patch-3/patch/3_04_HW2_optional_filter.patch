@@ -1,0 +1,220 @@
+Index: src/main/webapp/css/style.css
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/webapp/css/style.css	(date 1539790800288)
++++ src/main/webapp/css/style.css	(date 1539790800288)
+@@ -0,0 +1,24 @@
++dl {
++    background: none repeat scroll 0 0 #FAFAFA;
++    margin: 8px 0;
++    padding: 0;
++}
++
++dt {
++    display: inline-block;
++    width: 170px;
++}
++
++dd {
++    display: inline-block;
++    margin-left: 8px;
++    vertical-align: top;
++}
++
++tr[data-mealExcess="false"] {
++    color: green;
++}
++
++tr[data-mealExcess="true"] {
++    color: red;
++}
+Index: src/main/java/ru/javawebinar/topjava/web/MealServlet.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/ru/javawebinar/topjava/web/MealServlet.java	(date 1539790654000)
++++ src/main/java/ru/javawebinar/topjava/web/MealServlet.java	(date 1539790665080)
+@@ -11,10 +11,15 @@
+ import javax.servlet.http.HttpServletRequest;
+ import javax.servlet.http.HttpServletResponse;
+ import java.io.IOException;
++import java.time.LocalDate;
+ import java.time.LocalDateTime;
++import java.time.LocalTime;
+ import java.time.temporal.ChronoUnit;
+ import java.util.Objects;
+ 
++import static ru.javawebinar.topjava.util.DateTimeUtil.parseLocalDate;
++import static ru.javawebinar.topjava.util.DateTimeUtil.parseLocalTime;
++
+ public class MealServlet extends HttpServlet {
+ 
+     private ConfigurableApplicationContext springContext;
+@@ -36,17 +41,28 @@
+     @Override
+     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+         request.setCharacterEncoding("UTF-8");
+-        Meal meal = new Meal(
+-                LocalDateTime.parse(request.getParameter("dateTime")),
+-                request.getParameter("description"),
+-                Integer.parseInt(request.getParameter("calories")));
++        String action = request.getParameter("action");
++        if (action == null) {
++            Meal meal = new Meal(
++                    LocalDateTime.parse(request.getParameter("dateTime")),
++                    request.getParameter("description"),
++                    Integer.parseInt(request.getParameter("calories")));
+ 
+-        if (request.getParameter("id").isEmpty()) {
+-            mealController.create(meal);
+-        } else {
+-            mealController.update(meal, getId(request));
+-        }
+-        response.sendRedirect("meals");
++            if (request.getParameter("id").isEmpty()) {
++                mealController.create(meal);
++            } else {
++                mealController.update(meal, getId(request));
++            }
++            response.sendRedirect("meals");
++
++        } else if ("filter".equals(action)) {
++            LocalDate startDate = parseLocalDate(request.getParameter("startDate"));
++            LocalDate endDate = parseLocalDate(request.getParameter("endDate"));
++            LocalTime startTime = parseLocalTime(request.getParameter("startTime"));
++            LocalTime endTime = parseLocalTime(request.getParameter("endTime"));
++            request.setAttribute("meals", mealController.getBetween(startDate, startTime, endDate, endTime));
++            request.getRequestDispatcher("/meals.jsp").forward(request, response);
++        }
+     }
+ 
+     @Override
+Index: src/main/webapp/meals.jsp
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/webapp/meals.jsp	(date 1539790654000)
++++ src/main/webapp/meals.jsp	(date 1539790844104)
+@@ -2,24 +2,35 @@
+ <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+ <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+ <%@ taglib prefix="fn" uri="http://topjava.javawebinar.ru/functions" %>
+-<%--<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions"%>--%>
+ <html>
+ <head>
+     <title>Meal list</title>
+-    <style>
+-        .normal {
+-            color: green;
+-        }
+-
+-        .excess {
+-            color: red;
+-        }
+-    </style>
++    <link rel="stylesheet" href="css/style.css">
+ </head>
+ <body>
+ <section>
+     <h3><a href="index.html">Home</a></h3>
+     <h2>Meals</h2>
++    <form method="post" action="meals?action=filter">
++        <dl>
++            <dt>From Date:</dt>
++            <dd><input type="date" name="startDate" value="${param.startDate}"></dd>
++        </dl>
++        <dl>
++            <dt>To Date:</dt>
++            <dd><input type="date" name="endDate" value="${param.endDate}"></dd>
++        </dl>
++        <dl>
++            <dt>From Time:</dt>
++            <dd><input type="time" name="startTime" value="${param.startTime}"></dd>
++        </dl>
++        <dl>
++            <dt>To Time:</dt>
++            <dd><input type="time" name="endTime" value="${param.endTime}"></dd>
++        </dl>
++        <button type="submit">Filter</button>
++    </form>
++    <hr/>
+     <a href="meals?action=create">Add Meal</a>
+     <hr/>
+     <table border="1" cellpadding="8" cellspacing="0">
+@@ -34,7 +45,7 @@
+         </thead>
+         <c:forEach items="${meals}" var="meal">
+             <jsp:useBean id="meal" scope="page" type="ru.javawebinar.topjava.to.MealTo"/>
+-            <tr class="${meal.excess ? 'excess' : 'normal'}">
++            <tr data-mealExcess="${meal.excess}">
+                 <td>
+                         <%--${meal.dateTime.toLocalDate()} ${meal.dateTime.toLocalTime()}--%>
+                         <%--<%=TimeUtil.toString(meal.getDateTime())%>--%>
+Index: src/main/java/ru/javawebinar/topjava/util/DateTimeUtil.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/java/ru/javawebinar/topjava/util/DateTimeUtil.java	(date 1539790654000)
++++ src/main/java/ru/javawebinar/topjava/util/DateTimeUtil.java	(date 1539790665066)
+@@ -1,7 +1,10 @@
+ package ru.javawebinar.topjava.util;
+ 
++import org.springframework.util.StringUtils;
++
+ import java.time.LocalDate;
+ import java.time.LocalDateTime;
++import java.time.LocalTime;
+ import java.time.format.DateTimeFormatter;
+ 
+ public class DateTimeUtil {
+@@ -14,4 +17,12 @@
+     public static String toString(LocalDateTime ldt) {
+         return ldt == null ? "" : ldt.format(DATE_TIME_FORMATTER);
+     }
++
++    public static LocalDate parseLocalDate(String str) {
++        return StringUtils.isEmpty(str) ? null : LocalDate.parse(str);
++    }
++
++    public static LocalTime parseLocalTime(String str) {
++        return StringUtils.isEmpty(str) ? null : LocalTime.parse(str);
++    }
+ }
+Index: src/main/webapp/mealForm.jsp
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/main/webapp/mealForm.jsp	(date 1539790654000)
++++ src/main/webapp/mealForm.jsp	(date 1539790665111)
+@@ -4,24 +4,7 @@
+ <html>
+ <head>
+     <title>Meal</title>
+-    <style>
+-        dl {
+-            background: none repeat scroll 0 0 #FAFAFA;
+-            margin: 8px 0;
+-            padding: 0;
+-        }
+-
+-        dt {
+-            display: inline-block;
+-            width: 170px;
+-        }
+-
+-        dd {
+-            display: inline-block;
+-            margin-left: 8px;
+-            vertical-align: top;
+-        }
+-    </style>
++    <link rel="stylesheet" href="css/style.css">
+ </head>
+ <body>
+ <section>
