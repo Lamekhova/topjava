@@ -1,0 +1,133 @@
+Index: src/test/java/ru/javawebinar/topjava/MealTestData.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/test/java/ru/javawebinar/topjava/MealTestData.java	(revision c7f77299e6be0a3afc3b1c3a8d17678e37ff16ab)
++++ src/test/java/ru/javawebinar/topjava/MealTestData.java	(date 1540825770338)
+@@ -3,7 +3,6 @@
+ import ru.javawebinar.topjava.model.Meal;
+ 
+ import java.time.Month;
+-import java.util.Arrays;
+ import java.util.List;
+ 
+ import static java.time.LocalDateTime.of;
+@@ -23,7 +22,7 @@
+     public static final Meal ADMIN_MEAL1 = new Meal(ADMIN_MEAL_ID, of(2015, Month.JUNE, 1, 14, 0), "Админ ланч", 510);
+     public static final Meal ADMIN_MEAL2 = new Meal(ADMIN_MEAL_ID + 1, of(2015, Month.JUNE, 1, 21, 0), "Админ ужин", 1500);
+ 
+-    public static final List<Meal> MEALS = Arrays.asList(MEAL6, MEAL5, MEAL4, MEAL3, MEAL2, MEAL1);
++    public static final List<Meal> MEALS = List.of(MEAL6, MEAL5, MEAL4, MEAL3, MEAL2, MEAL1);
+ 
+     public static Meal getCreated() {
+         return new Meal(null, of(2015, Month.JUNE, 1, 18, 0), "Созданный ужин", 300);
+@@ -38,7 +37,7 @@
+     }
+ 
+     public static void assertMatch(Iterable<Meal> actual, Meal... expected) {
+-        assertMatch(actual, Arrays.asList(expected));
++        assertMatch(actual, List.of(expected));
+     }
+ 
+     public static void assertMatch(Iterable<Meal> actual, Iterable<Meal> expected) {
+Index: pom.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- pom.xml	(revision c7f77299e6be0a3afc3b1c3a8d17678e37ff16ab)
++++ pom.xml	(date 1540757300428)
+@@ -12,7 +12,7 @@
+     <url>http://topjava.herokuapp.com/</url>
+ 
+     <properties>
+-        <java.version>1.8</java.version>
++        <java.version>11</java.version>
+         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+ 
+@@ -79,6 +79,17 @@
+             <version>${logback.version}</version>
+             <scope>runtime</scope>
+         </dependency>
++
++        <dependency>
++            <groupId>javax.annotation</groupId>
++            <artifactId>javax.annotation-api</artifactId>
++            <version>1.3.2</version>
++        </dependency>
++        <dependency>
++            <groupId>javax.xml.bind</groupId>
++            <artifactId>jaxb-api</artifactId>
++            <version>2.3.1</version>
++        </dependency>
+ 
+         <!-- Spring -->
+         <dependency>
+Index: src/test/java/ru/javawebinar/topjava/repository/inmemory/InMemoryMealRepositoryImpl.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/test/java/ru/javawebinar/topjava/repository/inmemory/InMemoryMealRepositoryImpl.java	(revision c7f77299e6be0a3afc3b1c3a8d17678e37ff16ab)
++++ src/test/java/ru/javawebinar/topjava/repository/inmemory/InMemoryMealRepositoryImpl.java	(date 1540829695539)
+@@ -28,7 +28,7 @@
+     @Override
+     public Meal save(Meal meal, int userId) {
+         Objects.requireNonNull(meal, "meal must not be null");
+-        Map<Integer, Meal> meals = repository.computeIfAbsent(userId, ConcurrentHashMap::new);
++        var meals = repository.computeIfAbsent(userId, ConcurrentHashMap::new);
+         if (meal.isNew()) {
+             meal.setId(counter.incrementAndGet());
+             meals.put(meal.getId(), meal);
+@@ -49,13 +49,13 @@
+ 
+     @Override
+     public boolean delete(int id, int userId) {
+-        Map<Integer, Meal> meals = repository.get(userId);
++        var meals = repository.get(userId);
+         return meals != null && meals.remove(id) != null;
+     }
+ 
+     @Override
+     public Meal get(int id, int userId) {
+-        Map<Integer, Meal> meals = repository.get(userId);
++        var meals = repository.get(userId);
+         return meals == null ? null : meals.get(id);
+     }
+ 
+@@ -72,7 +72,7 @@
+     }
+ 
+     private List<Meal> getAllFiltered(int userId, Predicate<Meal> filter) {
+-        Map<Integer, Meal> meals = repository.get(userId);
++        var meals = repository.get(userId);
+         return CollectionUtils.isEmpty(meals) ? Collections.emptyList() :
+                 meals.values().stream()
+                         .filter(filter)
+Index: src/test/java/ru/javawebinar/topjava/UserTestData.java
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- src/test/java/ru/javawebinar/topjava/UserTestData.java	(revision c7f77299e6be0a3afc3b1c3a8d17678e37ff16ab)
++++ src/test/java/ru/javawebinar/topjava/UserTestData.java	(date 1540825770332)
+@@ -3,7 +3,7 @@
+ import ru.javawebinar.topjava.model.Role;
+ import ru.javawebinar.topjava.model.User;
+ 
+-import java.util.Arrays;
++import java.util.List;
+ 
+ import static org.assertj.core.api.Assertions.assertThat;
+ import static ru.javawebinar.topjava.model.AbstractBaseEntity.START_SEQ;
+@@ -20,7 +20,7 @@
+     }
+ 
+     public static void assertMatch(Iterable<User> actual, User... expected) {
+-        assertMatch(actual, Arrays.asList(expected));
++        assertMatch(actual, List.of(expected));
+     }
+ 
+     public static void assertMatch(Iterable<User> actual, Iterable<User> expected) {

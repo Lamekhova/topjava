@@ -1,0 +1,15 @@
+Index: .travis.yml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+--- .travis.yml	(revision 12f9a3e2206014e68675c9076d83fc47d18632a6)
++++ .travis.yml	(date 1541060169033)
+@@ -1,6 +1,6 @@
+ # https://docs.travis-ci.com/user/languages/java/
+ language: java
+-jdk: oraclejdk8
++jdk: oraclejdk11
+ 
+ #https://dzone.com/articles/travis-ci-tutorial-java-projects
+ cache:
